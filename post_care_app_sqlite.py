@@ -565,7 +565,7 @@ def web_speech_component(step_key):
             display: none;
         ">⏹️ Stop Recording</button>
         <div id="speech-status-{step_key}" style="margin: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; color: #333;">
-            Click "Start Recording" to begin speech recognition - text will appear live in your response box
+            Click "Start Recording" to begin speech recognition - text will appear directly in your response area below
         </div>
         <button id="manual-paste-{step_key}" onclick="manualPasteToResponse_{step_key}()" style="
             background: #28a745;
@@ -596,13 +596,13 @@ def web_speech_component(step_key):
                 recognition_{step_key}.lang = 'en-US';
 
                 recognition_{step_key}.onstart = function() {{
-                    document.getElementById('speech-status-{step_key}').innerHTML = '🎤 Listening... Speak now! Text will appear live in your response box.';
+                    document.getElementById('speech-status-{step_key}').innerHTML = '🎤 Listening... Speak now! Text will appear directly in your response area below.';
                     document.getElementById('start-speech-{step_key}').style.display = 'none';
                     document.getElementById('stop-speech-{step_key}').style.display = 'inline-block';
                     isRecording_{step_key} = true;
                     currentTranscript_{step_key} = '';
                     
-                    // Find and store the target textarea
+                    // Find and store the target textarea (the main response area)
                     findTargetTextarea_{step_key}();
                 }};
 
@@ -641,10 +641,10 @@ def web_speech_component(step_key):
 
                 recognition_{step_key}.onend = function() {{
                     document.getElementById('speech-status-{step_key}').innerHTML = 
-                        `✅ Recording complete! Text has been added to your response box. You can continue typing to edit it.`;
+                        `✅ Recording complete! Text has been added to your response area below. You can continue typing to edit it.`;
                     resetButtons_{step_key}();
                     
-                    // Final update to ensure all text is captured
+                    // Final update to ensure all text is captured in the main response area
                     if (currentTranscript_{step_key}.trim()) {{
                         updateTextareaLive_{step_key}(currentTranscript_{step_key}, true);
                     }}
@@ -657,11 +657,12 @@ def web_speech_component(step_key):
         function findTargetTextarea_{step_key}() {{
             // Wait a moment for Streamlit to fully render
             setTimeout(function() {{
-                // Strategy 1: Look for the most recently focused or largest Streamlit textarea
+                // Strategy 1: Find the main response textarea (the one above submit buttons)
+                // Look for Streamlit textareas that are likely the main response area
                 const streamlitTextareas = document.querySelectorAll('[data-testid="stTextArea"] textarea, [data-baseweb="textarea"] textarea, .stTextArea textarea');
                 
                 let bestTextarea = null;
-                let largestArea = 0;
+                let highestScore = 0;
                 
                 for (let textarea of streamlitTextareas) {{
                     const rect = textarea.getBoundingClientRect();
@@ -671,8 +672,19 @@ def web_speech_component(step_key):
                                     window.getComputedStyle(textarea).visibility !== 'hidden';
                     
                     if (isVisible && !textarea.disabled && !textarea.readOnly) {{
-                        // Prefer textareas with relevant placeholders
+                        let score = 0;
                         const placeholder = textarea.placeholder.toLowerCase();
+                        
+                        // High priority: textareas with specific medical keywords
+                        if (placeholder.includes('describe your cardiac') || 
+                            placeholder.includes('describe your breathing') || 
+                            placeholder.includes('describe your medication') || 
+                            placeholder.includes('describe your activity') ||
+                            placeholder.includes('describe any chest')) {{
+                            score += 100;
+                        }}
+                        
+                        // Medium priority: general medical terms
                         if (placeholder.includes('describe') || 
                             placeholder.includes('cardiac') || 
                             placeholder.includes('breathing') || 
@@ -681,12 +693,57 @@ def web_speech_component(step_key):
                             placeholder.includes('symptoms') ||
                             placeholder.includes('pain') ||
                             placeholder.includes('chest')) {{
-                            bestTextarea = textarea;
-                            break;
+                            score += 50;
                         }}
                         
-                        // Otherwise, use the largest visible textarea
-                        if (area > largestArea) {{
+                        // Bonus for larger textareas (likely main response areas)
+                        if (area > 10000) {{
+                            score += 20;
+                        }}
+                        
+                        // Check if this textarea is positioned above buttons (likely the main response area)
+                        const nextElements = textarea.parentElement.parentElement.nextElementSibling;
+                        if (nextElements && nextElements.innerHTML.includes('Next:') || 
+                            nextElements && nextElements.innerHTML.includes('Submit') ||
+                            nextElements && nextElements.innerHTML.includes('Continue')) {{
+                            score += 30;
+                        }}
+                        
+                        // Prefer the textarea that's closest to the speech component
+                        const speechContainer = document.getElementById('speech-container-{step_key}');
+                        if (speechContainer) {{
+                            const speechRect = speechContainer.getBoundingClientRect();
+                            const distance = Math.abs(rect.top - speechRect.bottom);
+                            if (distance < 500) {{ // Within 500px of speech component
+                                score += 25;
+                            }}
+                        }}
+                        
+                        console.log(`Textarea evaluation:`, {{
+                            placeholder: placeholder,
+                            area: area,
+                            score: score,
+                            element: textarea
+                        }});
+                        
+                        if (score > highestScore) {{
+                            highestScore = score;
+                            bestTextarea = textarea;
+                        }}
+                    }}
+                }}
+                
+                // Fallback: if no scored textarea found, use the largest visible one
+                if (!bestTextarea) {{
+                    let largestArea = 0;
+                    for (let textarea of streamlitTextareas) {{
+                        const rect = textarea.getBoundingClientRect();
+                        const area = rect.width * rect.height;
+                        const isVisible = area > 0 && 
+                                        window.getComputedStyle(textarea).display !== 'none' &&
+                                        window.getComputedStyle(textarea).visibility !== 'hidden';
+                        
+                        if (isVisible && !textarea.disabled && !textarea.readOnly && area > largestArea) {{
                             largestArea = area;
                             bestTextarea = textarea;
                         }}
@@ -695,7 +752,7 @@ def web_speech_component(step_key):
                 
                 if (bestTextarea) {{
                     targetTextarea_{step_key} = bestTextarea;
-                    console.log('Target textarea found:', bestTextarea.placeholder);
+                    console.log('Target textarea found:', bestTextarea.placeholder, 'Score:', highestScore);
                 }} else {{
                     console.log('No suitable textarea found');
                     document.getElementById('manual-paste-{step_key}').style.display = 'inline-block';
@@ -706,40 +763,53 @@ def web_speech_component(step_key):
         function updateTextareaLive_{step_key}(text, isFinal = false) {{
             if (targetTextarea_{step_key} && text.trim()) {{
                 try {{
-                    // Get the current cursor position to maintain it
+                    // Get the current cursor position and content
                     const cursorPosition = targetTextarea_{step_key}.selectionStart;
                     const currentValue = targetTextarea_{step_key}.value;
                     
-                    // If there's existing text, append with a space, otherwise replace
+                    // Smart text merging: replace content if it's similar or append if different
                     let newValue;
-                    if (currentValue.trim()) {{
-                        // Check if the text is already there to avoid duplication
-                        if (!currentValue.includes(text.trim())) {{
-                            newValue = currentValue + ' ' + text.trim();
-                        }} else {{
-                            newValue = currentValue;
-                        }}
+                    const trimmedText = text.trim();
+                    
+                    if (!currentValue.trim()) {{
+                        // Empty textarea - just set the new text
+                        newValue = trimmedText;
+                    }} else if (currentValue.includes(trimmedText.substring(0, 20))) {{
+                        // Text seems to be already there (avoid duplication)
+                        newValue = currentValue;
+                    }} else if (trimmedText.includes(currentValue.trim())) {{
+                        // New text contains the old text (expand it)
+                        newValue = trimmedText;
                     }} else {{
-                        newValue = text.trim();
+                        // Append new text with a space
+                        newValue = currentValue + ' ' + trimmedText;
                     }}
                     
-                    // Update the textarea value
-                    targetTextarea_{step_key}.value = newValue;
-                    
-                    // Trigger events to notify Streamlit of the change
-                    const events = ['input', 'change'];
-                    events.forEach(eventType => {{
-                        const event = new Event(eventType, {{ bubbles: true, cancelable: true }});
-                        targetTextarea_{step_key}.dispatchEvent(event);
-                    }});
-                    
-                    // For final updates, also trigger focus and blur
-                    if (isFinal) {{
-                        targetTextarea_{step_key}.focus();
-                        setTimeout(() => {{
-                            const blurEvent = new Event('blur', {{ bubbles: true, cancelable: true }});
-                            targetTextarea_{step_key}.dispatchEvent(blurEvent);
-                        }}, 100);
+                    // Only update if there's actually a change
+                    if (newValue !== currentValue) {{
+                        targetTextarea_{step_key}.value = newValue;
+                        
+                        // Trigger Streamlit-compatible events
+                        const inputEvent = new Event('input', {{ bubbles: true, cancelable: true }});
+                        const changeEvent = new Event('change', {{ bubbles: true, cancelable: true }});
+                        
+                        targetTextarea_{step_key}.dispatchEvent(inputEvent);
+                        targetTextarea_{step_key}.dispatchEvent(changeEvent);
+                        
+                        // For final updates, also focus and blur to ensure Streamlit detects the change
+                        if (isFinal) {{
+                            targetTextarea_{step_key}.focus();
+                            setTimeout(() => {{
+                                const blurEvent = new Event('blur', {{ bubbles: true, cancelable: true }});
+                                targetTextarea_{step_key}.dispatchEvent(blurEvent);
+                                
+                                // Additional event for Streamlit state update
+                                const keyupEvent = new Event('keyup', {{ bubbles: true, cancelable: true }});
+                                targetTextarea_{step_key}.dispatchEvent(keyupEvent);
+                            }}, 100);
+                        }}
+                        
+                        console.log('Textarea updated with:', newValue.substring(0, 50) + '...');
                     }}
                     
                 }} catch (error) {{
