@@ -539,6 +539,352 @@ def assess_risk_level(text):
     else:
         return "medium"
 
+# Web-based speech recognition component
+def web_speech_component(step_key):
+    speech_html = f"""
+    <div id="speech-container-{step_key}">
+        <button id="start-speech-{step_key}" onclick="startSpeech_{step_key}()" style="
+            background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+        ">🎤 Start Recording</button>
+        <button id="stop-speech-{step_key}" onclick="stopSpeech_{step_key}()" style="
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            display: none;
+        ">⏹️ Stop Recording</button>
+        <div id="speech-status-{step_key}" style="margin: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; color: #333;">
+            Click "Start Recording" to begin speech recognition - text will automatically appear in your response
+        </div>
+        <button id="manual-paste-{step_key}" onclick="manualPasteToResponse_{step_key}()" style="
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            display: none;
+        ">📝 Paste Speech to Response</button>
+        <button id="debug-{step_key}" onclick="debugTextareas_{step_key}()" style="
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 10px;
+        ">🔍 Debug</button>
+    </div>
+
+    <script>
+        let recognition_{step_key} = null;
+        let isRecording_{step_key} = false;
+        let fullTranscript_{step_key} = '';
+
+        function initSpeechRecognition_{step_key}() {{
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {{
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition_{step_key} = new SpeechRecognition();
+                
+                recognition_{step_key}.continuous = true;
+                recognition_{step_key}.interimResults = true;
+                recognition_{step_key}.lang = 'en-US';
+
+                recognition_{step_key}.onstart = function() {{
+                    document.getElementById('speech-status-{step_key}').innerHTML = '🎤 Listening... Speak now!';
+                    document.getElementById('start-speech-{step_key}').style.display = 'none';
+                    document.getElementById('stop-speech-{step_key}').style.display = 'inline-block';
+                    isRecording_{step_key} = true;
+                    fullTranscript_{step_key} = '';
+                }};
+
+                recognition_{step_key}.onresult = function(event) {{
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {{
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {{
+                            finalTranscript += transcript + ' ';
+                        }} else {{
+                            interimTranscript += transcript;
+                        }}
+                    }}
+                    
+                    if (finalTranscript) {{
+                        fullTranscript_{step_key} += finalTranscript;
+                        
+                        // Only update main response after a pause to avoid too many updates
+                        clearTimeout(window.updateTimeout_{step_key});
+                        window.updateTimeout_{step_key} = setTimeout(function() {{
+                            pasteToMainResponse_{step_key}();
+                        }}, 2000);
+                    }}
+                    
+                    // Speech will be automatically pasted to main response area
+                }};
+
+                recognition_{step_key}.onerror = function(event) {{
+                    document.getElementById('speech-status-{step_key}').innerHTML = '❌ Error: ' + event.error;
+                    resetButtons_{step_key}();
+                }};
+
+                recognition_{step_key}.onend = function() {{
+                    document.getElementById('speech-status-{step_key}').innerHTML = '✅ Recording stopped - Inserting text into response...';
+                    resetButtons_{step_key}();
+                    
+                    // Wait a bit longer for Streamlit to render the textarea fully
+                    setTimeout(function() {{
+                        console.log('=== FIRST ATTEMPT (delayed) ===');
+                        pasteToMainResponse_{step_key}(0);
+                    }}, 1500);
+                    
+                    setTimeout(function() {{
+                        console.log('=== SECOND ATTEMPT ===');
+                        pasteToMainResponse_{step_key}(1);
+                    }}, 3000);
+                    
+                    setTimeout(function() {{
+                        console.log('=== THIRD ATTEMPT ===');
+                        pasteToMainResponse_{step_key}(2);
+                    }}, 5000);
+                }};
+            }} else {{
+                document.getElementById('speech-status-{step_key}').innerHTML = '❌ Speech recognition not supported in this browser';
+            }}
+        }}
+
+        function startSpeech_{step_key}() {{
+            if (recognition_{step_key} && !isRecording_{step_key}) {{
+                recognition_{step_key}.start();
+            }} else {{
+                initSpeechRecognition_{step_key}();
+                if (recognition_{step_key}) {{
+                    recognition_{step_key}.start();
+                }}
+            }}
+        }}
+
+        function stopSpeech_{step_key}() {{
+            if (recognition_{step_key} && isRecording_{step_key}) {{
+                recognition_{step_key}.stop();
+            }}
+        }}
+
+        function resetButtons_{step_key}() {{
+            document.getElementById('start-speech-{step_key}').style.display = 'inline-block';
+            document.getElementById('stop-speech-{step_key}').style.display = 'none';
+            isRecording_{step_key} = false;
+        }}
+
+        function pasteToMainResponse_{step_key}(retryCount = 0) {{
+            const speechText = fullTranscript_{step_key}.trim();
+            if (speechText) {{
+                let responseTextarea = null;
+                
+                console.log('Searching for textarea, attempt:', retryCount + 1);
+                console.log('Speech text to paste:', speechText);
+                
+                // Strategy 1: Look for Streamlit textareas specifically first
+                const streamlitTextareas = document.querySelectorAll('[data-testid="stTextArea"] textarea, [data-baseweb="textarea"] textarea, textarea[data-testid], .stTextArea textarea');
+                console.log('Streamlit textareas found:', streamlitTextareas.length);
+                
+                for (let i = 0; i < streamlitTextareas.length; i++) {{
+                    const textarea = streamlitTextareas[i];
+                    const rect = textarea.getBoundingClientRect();
+                    const isVisible = rect.width > 0 && rect.height > 0 && 
+                                    window.getComputedStyle(textarea).display !== 'none' &&
+                                    window.getComputedStyle(textarea).visibility !== 'hidden';
+                    
+                    console.log(`Streamlit Textarea ${{i}}:`, {{
+                        placeholder: textarea.placeholder,
+                        visible: isVisible,
+                        disabled: textarea.disabled,
+                        readOnly: textarea.readOnly,
+                        id: textarea.id,
+                        className: textarea.className,
+                        value: textarea.value.substring(0, 50)
+                    }});
+                    
+                    if (isVisible && !textarea.disabled && !textarea.readOnly && !textarea.id.includes('temp-speech-display')) {{
+                        responseTextarea = textarea;
+                        console.log('Found Streamlit textarea:', textarea);
+                        break;
+                    }}
+                }}
+                
+                // Strategy 2: Look for textareas by placeholder if Streamlit method failed
+                if (!responseTextarea) {{
+                    const allTextareas = document.querySelectorAll('textarea');
+                    console.log('All textareas found:', allTextareas.length);
+                    
+                    for (let i = 0; i < allTextareas.length; i++) {{
+                        const textarea = allTextareas[i];
+                        const rect = textarea.getBoundingClientRect();
+                        const isVisible = rect.width > 0 && rect.height > 0 && 
+                                        window.getComputedStyle(textarea).display !== 'none' &&
+                                        window.getComputedStyle(textarea).visibility !== 'hidden';
+                        
+                        console.log(`All Textarea ${{i}}:`, {{
+                            placeholder: textarea.placeholder,
+                            visible: isVisible,
+                            disabled: textarea.disabled,
+                            readOnly: textarea.readOnly,
+                            id: textarea.id,
+                            value: textarea.value.substring(0, 50)
+                        }});
+                        
+                        // Skip our temporary display and only look for main response textareas
+                        if (isVisible && !textarea.disabled && !textarea.readOnly && 
+                            !textarea.id.includes('temp-speech-display') && 
+                            !textarea.id.includes('speech-container')) {{
+                            
+                            const placeholder = textarea.placeholder.toLowerCase();
+                            if (placeholder.includes('describe') || 
+                                placeholder.includes('cardiac') || 
+                                placeholder.includes('breathing') || 
+                                placeholder.includes('medication') || 
+                                placeholder.includes('activity') ||
+                                placeholder.includes('symptoms') ||
+                                placeholder.includes('pain') ||
+                                placeholder.includes('chest')) {{
+                                responseTextarea = textarea;
+                                console.log('Found matching textarea by placeholder:', placeholder);
+                                break;
+                            }}
+                        }}
+                    }}
+                }}
+                
+                // Strategy 3: Get the largest visible, writable textarea (excluding temp displays)
+                if (!responseTextarea) {{
+                    const allTextareas = document.querySelectorAll('textarea');
+                    let largestArea = 0;
+                    for (let textarea of allTextareas) {{
+                        const rect = textarea.getBoundingClientRect();
+                        const area = rect.width * rect.height;
+                        const isVisible = area > 0 && 
+                                        window.getComputedStyle(textarea).display !== 'none' &&
+                                        window.getComputedStyle(textarea).visibility !== 'hidden';
+                        
+                        if (isVisible && !textarea.disabled && !textarea.readOnly && 
+                            !textarea.id.includes('temp-speech-display') &&
+                            !textarea.id.includes('speech-container') &&
+                            area > largestArea) {{
+                            largestArea = area;
+                            responseTextarea = textarea;
+                        }}
+                    }}
+                    if (responseTextarea) {{
+                        console.log('Found largest textarea:', responseTextarea, 'Area:', largestArea);
+                    }}
+                }}
+                
+                if (responseTextarea) {{
+                    try {{
+                        // Set the value
+                        responseTextarea.value = speechText;
+                        
+                        // Trigger multiple events to ensure Streamlit detects the change
+                        const events = ['input', 'change', 'keyup', 'blur'];
+                        events.forEach(eventType => {{
+                            const event = new Event(eventType, {{ bubbles: true, cancelable: true }});
+                            responseTextarea.dispatchEvent(event);
+                        }});
+                        
+                        // Focus on the textarea
+                        responseTextarea.focus();
+                        
+                        document.getElementById('speech-status-{step_key}').innerHTML = 
+                            `✅ Successfully pasted: "${{speechText.substring(0, 50)}}..." to response area`;
+                        document.getElementById('manual-paste-{step_key}').style.display = 'none';
+                        
+                        console.log('SUCCESS: Text pasted to textarea');
+                        return true;
+                    }} catch (error) {{
+                        console.error('Error setting textarea value:', error);
+                        document.getElementById('speech-status-{step_key}').innerHTML = 
+                            '❌ Error pasting text - Try the manual paste button';
+                        document.getElementById('manual-paste-{step_key}').style.display = 'inline-block';
+                    }}
+                }} else {{
+                    console.log('No suitable textarea found');
+                    document.getElementById('speech-status-{step_key}').innerHTML = 
+                        '⚠️ Could not find response textarea - Try the manual paste button';
+                    document.getElementById('manual-paste-{step_key}').style.display = 'inline-block';
+                }}
+            }} else {{
+                console.log('No speech text to paste');
+                document.getElementById('speech-status-{step_key}').innerHTML = '⚠️ No speech text captured';
+            }}
+            return false;
+        }}
+
+        function manualPasteToResponse_{step_key}() {{
+            const speechText = fullTranscript_{step_key}.trim();
+            if (speechText) {{
+                // Show the speech text and instructions
+                const statusDiv = document.getElementById('speech-status-{step_key}');
+                statusDiv.innerHTML = `
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 5px; border: 1px solid #ffeaa7;">
+                        <strong>📝 Manual Copy Instructions:</strong><br>
+                        Copy this text and paste it into your response area:<br>
+                        <textarea id="temp-speech-display-{step_key}" readonly style="width: 100%; height: 60px; margin: 5px 0; padding: 5px; border: 1px solid #ddd; border-radius: 3px; font-family: monospace;">${{speechText}}</textarea>
+                        <button onclick="copyToClipboard_{step_key}()" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">📋 Copy Text</button>
+                    </div>
+                `;
+            }}
+        }}
+
+        function copyToClipboard_{step_key}() {{
+            const tempTextarea = document.getElementById('temp-speech-display-{step_key}');
+            if (tempTextarea) {{
+                tempTextarea.select();
+                tempTextarea.setSelectionRange(0, 99999); // For mobile devices
+                document.execCommand('copy');
+                
+                document.getElementById('speech-status-{step_key}').innerHTML = 
+                    '✅ Text copied to clipboard! Now paste it into your response area above.';
+            }}
+        }}
+
+        function debugTextareas_{step_key}() {{
+            const allTextareas = document.querySelectorAll('textarea');
+            let debugInfo = `Found ${{allTextareas.length}} textareas:<br>`;
+            
+            allTextareas.forEach((textarea, index) => {{
+                const rect = textarea.getBoundingClientRect();
+                const isVisible = rect.width > 0 && rect.height > 0;
+                debugInfo += `${{index + 1}}. ID: "${{textarea.id}}", Placeholder: "${{textarea.placeholder}}", Visible: ${{isVisible}}<br>`;
+            }});
+            
+            document.getElementById('speech-status-{step_key}').innerHTML = debugInfo;
+        }}
+
+        // Initialize on page load
+        if (document.readyState === 'loading') {{
+            document.addEventListener('DOMContentLoaded', initSpeechRecognition_{step_key});
+        }} else {{
+            initSpeechRecognition_{step_key}();
+        }}
+    </script>
+    """
+    return speech_html
+
 # Text-to-Speech function
 def text_to_speech(text):
     try:
