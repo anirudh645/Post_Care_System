@@ -1468,27 +1468,35 @@ else:
         # Survey Information
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.info("📊 **Total Questions:** 4")
+            st.info("📊 **Total Questions:** 8")
         with col2:
-            st.info("⏱️ **Estimated Time:** 5-10 minutes")
+            st.info("⏱️ **Estimated Time:** 8-12 minutes")
         with col3:
             st.info("🎤 **Speech Recognition Available**")
         
-        # Initialize session state variables for assessment
+        # Initialize session state variables for assessment (8 steps now)
         if 'step' not in st.session_state:
             st.session_state.step = 1
-        if 'cardiac_symptoms_response' not in st.session_state:
-            st.session_state.cardiac_symptoms_response = ""
-        if 'breathing_chest_response' not in st.session_state:
-            st.session_state.breathing_chest_response = ""
-        if 'medication_response' not in st.session_state:
-            st.session_state.medication_response = ""
-        if 'activity_fatigue_response' not in st.session_state:
-            st.session_state.activity_fatigue_response = ""
+        if 'chest_pain_response' not in st.session_state:
+            st.session_state.chest_pain_response = ""
+        if 'pain_triggers_response' not in st.session_state:
+            st.session_state.pain_triggers_response = ""
+        if 'breathing_response' not in st.session_state:
+            st.session_state.breathing_response = ""
+        if 'swelling_response' not in st.session_state:
+            st.session_state.swelling_response = ""
+        if 'medication_adherence_response' not in st.session_state:
+            st.session_state.medication_adherence_response = ""
+        if 'medication_side_effects_response' not in st.session_state:
+            st.session_state.medication_side_effects_response = ""
+        if 'energy_level_response' not in st.session_state:
+            st.session_state.energy_level_response = ""
+        if 'daily_activities_response' not in st.session_state:
+            st.session_state.daily_activities_response = ""
         
         # Progress Bar
-        if st.session_state.step <= 4:
-            progress_percentage = ((st.session_state.step - 1) / 4) * 100
+        if st.session_state.step <= 8:
+            progress_percentage = ((st.session_state.step - 1) / 8) * 100
         else:
             progress_percentage = 100
         
@@ -1496,7 +1504,7 @@ else:
         <div style="background: #f0f0f0; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <span style="font-weight: 600; color: #333;">Assessment Progress</span>
-                <span style="font-weight: 600; color: #ff6b6b;">{"Complete" if st.session_state.step > 4 else f"Step {st.session_state.step}/4"}</span>
+                <span style="font-weight: 600; color: #ff6b6b;">{"Complete" if st.session_state.step > 8 else f"Step {st.session_state.step}/8"}</span>
             </div>
             <div style="background: #ddd; border-radius: 10px; height: 10px; overflow: hidden;">
                 <div style="background: linear-gradient(90deg, #ff6b6b, #ff8e8e); height: 100%; width: {progress_percentage}%; transition: width 0.3s ease;"></div>
@@ -1504,12 +1512,12 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        # Assessment Steps
+        # Assessment Steps - Now 8 focused questions
         if st.session_state.step == 1:
             st.markdown('<div class="step-container">', unsafe_allow_html=True)
-            st.subheader("💓 Step 1: Cardiac Symptoms Assessment")
+            st.subheader("💓 Step 1: Chest Pain Assessment")
             
-            question_text = "Since your heart attack, have you experienced any chest pain, discomfort, or unusual sensations in your chest area? Please describe any chest discomfort, including when it occurs, how severe it is on a scale of 1 to 10, and what triggers it."
+            question_text = "Since your heart attack, have you experienced any chest pain or discomfort? If yes, please rate the severity on a scale of 1 to 10."
             
             st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
             
@@ -1529,21 +1537,21 @@ else:
             st.markdown("### ✏️ Type Your Response")
             st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
             manual_response = st.text_area(
-                "Describe your cardiac symptoms:", 
-                value=st.session_state.cardiac_symptoms_response,
-                placeholder="Please describe any chest pain, discomfort, or unusual sensations...",
+                "Describe any chest pain or discomfort:", 
+                value=st.session_state.chest_pain_response,
+                placeholder="Please describe any chest pain and rate its severity (1-10)...",
                 height=120,
-                key="cardiac_response_textarea"
+                key="chest_pain_response_textarea"
             )
             
-            if manual_response != st.session_state.cardiac_symptoms_response:
-                st.session_state.cardiac_symptoms_response = manual_response
+            if manual_response != st.session_state.chest_pain_response:
+                st.session_state.chest_pain_response = manual_response
             
-            if st.session_state.cardiac_symptoms_response:
-                st.markdown(f'<div class="current-response"><strong>✅ Your Response:</strong><br>{st.session_state.cardiac_symptoms_response}</div>', unsafe_allow_html=True)
+            if st.session_state.chest_pain_response:
+                st.markdown(f'<div class="current-response"><strong>✅ Your Response:</strong><br>{st.session_state.chest_pain_response}</div>', unsafe_allow_html=True)
             
-            if st.button("➡️ Next: Breathing Assessment", key="next_step1"):
-                if st.session_state.cardiac_symptoms_response.strip():
+            if st.button("➡️ Next: Pain Triggers", key="next_step1"):
+                if st.session_state.chest_pain_response.strip():
                     st.session_state.step = 2
                     st.rerun()
                 else:
@@ -1553,9 +1561,9 @@ else:
         
         elif st.session_state.step == 2:
             st.markdown('<div class="step-container">', unsafe_allow_html=True)
-            st.subheader("🫁 Step 2: Breathing and Physical Symptoms")
+            st.subheader("🎯 Step 2: Pain Triggers and Timing")
             
-            question_text = "How is your breathing? Have you experienced any shortness of breath, difficulty breathing during normal activities, or while resting? Do you have any swelling in your legs, ankles, or feet?"
+            question_text = "When does your chest discomfort occur? What activities or situations seem to trigger it (exercise, stress, rest, eating, etc.)?"
             
             st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
             
@@ -1576,18 +1584,18 @@ else:
             st.markdown("### ✏️ Type Your Response")
             st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
             manual_response = st.text_area(
-                "Describe your breathing and physical symptoms:", 
-                value=st.session_state.breathing_chest_response,
-                placeholder="Please describe your breathing, any shortness of breath, or swelling...",
+                "Describe when pain occurs and what triggers it:", 
+                value=st.session_state.pain_triggers_response,
+                placeholder="Please describe when your chest discomfort occurs and what triggers it...",
                 height=120,
-                key="breathing_response_textarea"
+                key="pain_triggers_response_textarea"
             )
             
-            if manual_response != st.session_state.breathing_chest_response:
-                st.session_state.breathing_chest_response = manual_response
+            if manual_response != st.session_state.pain_triggers_response:
+                st.session_state.pain_triggers_response = manual_response
             
-            if st.button("➡️ Continue to Next Question", use_container_width=True):
-                if st.session_state.breathing_chest_response:
+            if st.button("➡️ Next: Breathing Assessment", use_container_width=True):
+                if st.session_state.pain_triggers_response.strip():
                     st.session_state.step = 3
                     st.rerun()
                 else:
@@ -1597,9 +1605,9 @@ else:
         
         elif st.session_state.step == 3:
             st.markdown('<div class="step-container">', unsafe_allow_html=True)
-            st.subheader("💊 Step 3: Medication and Side Effects")
+            st.subheader("🫁 Step 3: Breathing and Shortness of Breath")
             
-            question_text = "Are you taking all your prescribed heart medications as directed? Have you experienced any side effects from your medications such as dizziness, nausea, unusual bleeding, or any other concerning symptoms?"
+            question_text = "How is your breathing? Do you experience shortness of breath during normal activities, while resting, or when lying down?"
             
             st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
             
@@ -1620,18 +1628,18 @@ else:
             st.markdown("### ✏️ Type Your Response")
             st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
             manual_response = st.text_area(
-                "Describe your medication routine and any side effects:", 
-                value=st.session_state.medication_response,
-                placeholder="Please describe your medication routine and any side effects...",
+                "Describe your breathing and any shortness of breath:", 
+                value=st.session_state.breathing_response,
+                placeholder="Please describe your breathing and any shortness of breath...",
                 height=120,
-                key="medication_response_textarea"
+                key="breathing_response_textarea"
             )
             
-            if manual_response != st.session_state.medication_response:
-                st.session_state.medication_response = manual_response
+            if manual_response != st.session_state.breathing_response:
+                st.session_state.breathing_response = manual_response
             
-            if st.button("➡️ Continue to Final Question", use_container_width=True):
-                if st.session_state.medication_response:
+            if st.button("➡️ Next: Swelling Assessment", use_container_width=True):
+                if st.session_state.breathing_response.strip():
                     st.session_state.step = 4
                     st.rerun()
                 else:
@@ -1641,9 +1649,9 @@ else:
         
         elif st.session_state.step == 4:
             st.markdown('<div class="step-container">', unsafe_allow_html=True)
-            st.subheader("🏃‍♂️ Step 4: Activity Tolerance and Fatigue")
+            st.subheader("🦵 Step 4: Swelling and Fluid Retention")
             
-            question_text = "How is your energy level and ability to perform daily activities? Can you climb stairs, walk distances, or do household chores without excessive fatigue or chest discomfort?"
+            question_text = "Do you have any swelling in your legs, ankles, feet, or hands? Do you notice weight gain or that your clothes feel tighter?"
             
             st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
             
@@ -1664,35 +1672,217 @@ else:
             st.markdown("### ✏️ Type Your Response")
             st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
             manual_response = st.text_area(
-                "Describe your activity level and energy:", 
-                value=st.session_state.activity_fatigue_response,
-                placeholder="Please describe your activity level, fatigue, and any limitations...",
+                "Describe any swelling or fluid retention:", 
+                value=st.session_state.swelling_response,
+                placeholder="Please describe any swelling in legs, ankles, feet, hands, or weight gain...",
                 height=120,
-                key="activity_response_textarea"
+                key="swelling_response_textarea"
             )
             
-            if manual_response != st.session_state.activity_fatigue_response:
-                st.session_state.activity_fatigue_response = manual_response
+            if manual_response != st.session_state.swelling_response:
+                st.session_state.swelling_response = manual_response
+            
+            if st.button("➡️ Next: Medication Adherence", use_container_width=True):
+                if st.session_state.swelling_response.strip():
+                    st.session_state.step = 5
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Please provide a response before continuing.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        elif st.session_state.step == 5:
+            st.markdown('<div class="step-container">', unsafe_allow_html=True)
+            st.subheader("💊 Step 5: Medication Adherence")
+            
+            question_text = "Are you taking all your prescribed heart medications as directed? Do you ever miss doses or have trouble remembering to take them?"
+            
+            st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
+            
+            if st.button("🔊 Play Question Audio", key="tts_step5"):
+                try:
+                    audio_file = text_to_speech(question_text)
+                    if audio_file:
+                        with open(audio_file, "rb") as f:
+                            audio_bytes = f.read()
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                        os.unlink(audio_file)
+                except Exception as e:
+                    st.error(f"Audio playback failed: {e}")
+            
+            st.markdown("### 🎙️ Record Your Response")
+            components.html(web_speech_component("step5"), height=200)
+            
+            st.markdown("### ✏️ Type Your Response")
+            st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
+            manual_response = st.text_area(
+                "Describe your medication routine:", 
+                value=st.session_state.medication_adherence_response,
+                placeholder="Please describe how well you're taking your medications as prescribed...",
+                height=120,
+                key="medication_adherence_response_textarea"
+            )
+            
+            if manual_response != st.session_state.medication_adherence_response:
+                st.session_state.medication_adherence_response = manual_response
+            
+            if st.button("➡️ Next: Medication Side Effects", use_container_width=True):
+                if st.session_state.medication_adherence_response.strip():
+                    st.session_state.step = 6
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Please provide a response before continuing.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        elif st.session_state.step == 6:
+            st.markdown('<div class="step-container">', unsafe_allow_html=True)
+            st.subheader("⚠️ Step 6: Medication Side Effects")
+            
+            question_text = "Have you experienced any side effects from your medications such as dizziness, nausea, unusual bleeding, or any other concerning symptoms?"
+            
+            st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
+            
+            if st.button("🔊 Play Question Audio", key="tts_step6"):
+                try:
+                    audio_file = text_to_speech(question_text)
+                    if audio_file:
+                        with open(audio_file, "rb") as f:
+                            audio_bytes = f.read()
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                        os.unlink(audio_file)
+                except Exception as e:
+                    st.error(f"Audio playback failed: {e}")
+            
+            st.markdown("### 🎙️ Record Your Response")
+            components.html(web_speech_component("step6"), height=200)
+            
+            st.markdown("### ✏️ Type Your Response")
+            st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
+            manual_response = st.text_area(
+                "Describe any medication side effects:", 
+                value=st.session_state.medication_side_effects_response,
+                placeholder="Please describe any side effects from your medications...",
+                height=120,
+                key="medication_side_effects_response_textarea"
+            )
+            
+            if manual_response != st.session_state.medication_side_effects_response:
+                st.session_state.medication_side_effects_response = manual_response
+            
+            if st.button("➡️ Next: Energy Level", use_container_width=True):
+                if st.session_state.medication_side_effects_response.strip():
+                    st.session_state.step = 7
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Please provide a response before continuing.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        elif st.session_state.step == 7:
+            st.markdown('<div class="step-container">', unsafe_allow_html=True)
+            st.subheader("⚡ Step 7: Energy Level and Fatigue")
+            
+            question_text = "How is your energy level? Do you feel more tired than usual or experience fatigue during normal activities?"
+            
+            st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
+            
+            if st.button("🔊 Play Question Audio", key="tts_step7"):
+                try:
+                    audio_file = text_to_speech(question_text)
+                    if audio_file:
+                        with open(audio_file, "rb") as f:
+                            audio_bytes = f.read()
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                        os.unlink(audio_file)
+                except Exception as e:
+                    st.error(f"Audio playback failed: {e}")
+            
+            st.markdown("### 🎙️ Record Your Response")
+            components.html(web_speech_component("step7"), height=200)
+            
+            st.markdown("### ✏️ Type Your Response")
+            st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
+            manual_response = st.text_area(
+                "Describe your energy level and fatigue:", 
+                value=st.session_state.energy_level_response,
+                placeholder="Please describe your energy level and any fatigue you experience...",
+                height=120,
+                key="energy_level_response_textarea"
+            )
+            
+            if manual_response != st.session_state.energy_level_response:
+                st.session_state.energy_level_response = manual_response
+            
+            if st.button("➡️ Next: Final Question", use_container_width=True):
+                if st.session_state.energy_level_response.strip():
+                    st.session_state.step = 8
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Please provide a response before continuing.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        elif st.session_state.step == 8:
+            st.markdown('<div class="step-container">', unsafe_allow_html=True)
+            st.subheader("🏃‍♂️ Step 8: Daily Activities and Physical Limitations")
+            
+            question_text = "Can you perform your usual daily activities like climbing stairs, walking distances, or doing household chores? Do you have any physical limitations?"
+            
+            st.markdown(f'<div class="question-box">🗣️ <strong>Question:</strong> {question_text}</div>', unsafe_allow_html=True)
+            
+            if st.button("🔊 Play Question Audio", key="tts_step8"):
+                try:
+                    audio_file = text_to_speech(question_text)
+                    if audio_file:
+                        with open(audio_file, "rb") as f:
+                            audio_bytes = f.read()
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                        os.unlink(audio_file)
+                except Exception as e:
+                    st.error(f"Audio playback failed: {e}")
+            
+            st.markdown("### 🎙️ Record Your Response")
+            components.html(web_speech_component("step8"), height=200)
+            
+            st.markdown("### ✏️ Type Your Response")
+            st.info("💡 **Tip:** Use the speech recording above to automatically fill this area, or type/edit your response manually.")
+            manual_response = st.text_area(
+                "Describe your ability to perform daily activities:", 
+                value=st.session_state.daily_activities_response,
+                placeholder="Please describe your ability to perform daily activities and any limitations...",
+                height=120,
+                key="daily_activities_response_textarea"
+            )
+            
+            if manual_response != st.session_state.daily_activities_response:
+                st.session_state.daily_activities_response = manual_response
             
             if st.button("✅ Complete Assessment", use_container_width=True):
-                if st.session_state.activity_fatigue_response:
+                if st.session_state.daily_activities_response.strip():
+                    # Combine responses for the original database structure
+                    cardiac_symptoms_combined = f"Chest Pain: {st.session_state.chest_pain_response}\n\nPain Triggers: {st.session_state.pain_triggers_response}"
+                    breathing_physical_combined = f"Breathing: {st.session_state.breathing_response}\n\nSwelling: {st.session_state.swelling_response}"
+                    medication_combined = f"Adherence: {st.session_state.medication_adherence_response}\n\nSide Effects: {st.session_state.medication_side_effects_response}"
+                    activity_fatigue_combined = f"Energy Level: {st.session_state.energy_level_response}\n\nDaily Activities: {st.session_state.daily_activities_response}"
+                    
                     # Save to database
                     if save_patient_response(
                         st.session_state.user_id,
                         st.session_state.doctor_id,
-                        st.session_state.cardiac_symptoms_response,
-                        st.session_state.breathing_chest_response,
-                        st.session_state.medication_response,
-                        st.session_state.activity_fatigue_response
+                        cardiac_symptoms_combined,
+                        breathing_physical_combined,
+                        medication_combined,
+                        activity_fatigue_combined
                     ):
-                        st.session_state.step = 5
+                        st.session_state.step = 9
                         st.rerun()
                 else:
                     st.warning("⚠️ Please provide a response before completing the assessment.")
             
             st.markdown('</div>', unsafe_allow_html=True)
         
-        elif st.session_state.step == 5:
+        elif st.session_state.step == 9:
             st.markdown('<div class="success-box">', unsafe_allow_html=True)
             st.markdown("## 🎉 Assessment Complete!")
             st.markdown("### Thank you for completing your cardiac health assessment!")
